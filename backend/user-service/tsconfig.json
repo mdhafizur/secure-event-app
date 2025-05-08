@@ -1,0 +1,47 @@
+{
+  "compilerOptions": {
+    // Modern JavaScript output for async/await and top-level await
+    "target": "ESNext",
+    // Use Node.js-native ESM module system (with import/export syntax)
+    "module": "NodeNext",
+    // Resolve modules using Node.js-style resolution (for ESM)
+    "moduleResolution": "NodeNext",
+    // Source TypeScript files are under ./src
+    "rootDir": "./src",
+    // Compiled JavaScript output will go into ./dist
+    "outDir": "./dist",
+    // Enable all strict type-checking options (strong typing)
+    "strict": true,
+    // Enables `import fs from 'fs'` compatibility with CommonJS modules
+    "esModuleInterop": true,
+    // Prevent case sensitivity bugs across different OS (Windows vs Linux)
+    "forceConsistentCasingInFileNames": true,
+    // Skip checking declaration files (`*.d.ts`) for faster builds
+    "skipLibCheck": true,
+    // Allow default imports from modules without a default export
+    "allowSyntheticDefaultImports": true,
+    // Allows importing `.json` files as modules
+    "resolveJsonModule": true,
+    // Generate `.map` files for debugging in Node.js or browser
+    "sourceMap": true,
+    // Generate `.d.ts` declaration files for external consumption
+    "declaration": true,
+    // Ensure all code paths in functions return a value
+    "noImplicitReturns": true,
+    // Prevent fallthrough between `case` clauses in `switch` statements
+    "noFallthroughCasesInSwitch": true,
+    // Required when using `isolatedModules` (e.g., for `ts-jest`, `vite`)
+    // Makes each file compile independently
+    "isolatedModules": true
+  },
+  // Only include TypeScript source files under `src/`
+  "include": [
+    "src/**/*"
+  ],
+  // Exclude build output and test directories
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test"
+  ]
+}
