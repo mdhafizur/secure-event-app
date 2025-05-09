@@ -3,6 +3,7 @@ import { validationResult } from 'express-validator';
 import createHttpError from 'http-errors';
 import User from '../models/User';
 import { redisClient } from '../utils/redisClient';
+import logger from '../utils/logger';
 
 // Create User
 export const createUser = async (req: Request, res: Response): Promise<void> => {
@@ -33,13 +34,16 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
 
   const cached = await redisClient.get(cacheKey);
   if (cached) {
-    console.log('Serving from Redis cache');
+    logger.info('Serving from Redis cache');
     res.status(200).json(JSON.parse(cached));
     return;
   }
 
   const user = await User.findById(userId).select('-password');
-  if (!user) throw createHttpError(404, 'User not found');
+  if (!user) {
+    logger.warn('User not found');
+    throw createHttpError(404, 'User not found');
+  }
 
   await redisClient.setEx(cacheKey, 3600, JSON.stringify(user));
   res.status(200).json(user);

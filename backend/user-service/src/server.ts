@@ -1,10 +1,11 @@
 // src/server.ts
-import express from 'express';
 import mongoose from 'mongoose';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import User from './models/User';
 import app from './app';
+import logger from './utils/logger';
+import { connectRedis } from './utils/redisClient';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/userdb';
@@ -29,7 +30,7 @@ const swaggerOptions = {
                     type: 'object',
                     properties: {
                         _id: { type: 'string' },
-                        name: { type: 'string' },
+                        username: { type: 'string' },
                         email: { type: 'string' },
                         createdAt: { type: 'string', format: 'date-time' },
                         updatedAt: { type: 'string', format: 'date-time' }
@@ -37,10 +38,16 @@ const swaggerOptions = {
                 },
                 UserInput: {
                     type: 'object',
-                    required: ['name', 'email'],
+                    required: ['username', 'name', 'email', 'role', 'password'],
                     properties: {
-                        name: { type: 'string' },
-                        email: { type: 'string', format: 'email' }
+                        username: { type: 'string' },
+                        email: { type: 'string', format: 'email' },
+                        role: {
+                            type: 'string',
+                            enum: ['admin', 'user', 'moderator'],
+                            description: 'Role of the user'
+                        },
+                        password: { type: 'string', format: 'password' }
                     }
                 }
             }
@@ -50,19 +57,23 @@ const swaggerOptions = {
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
-
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 mongoose.connect(MONGO_URI)
     .then(async () => {
-        console.log('MongoDB connected');
+        logger.info('MongoDB connected');
+
+        await connectRedis().catch((err) => {
+            logger.error('Redis connection failed:', err);
+            process.exit(1); // Optional: force exit if Redis is critical
+        });
 
         await User.createCollection().catch((err: unknown) => {
             if ((err as any)?.codeName !== 'NamespaceExists') {
-                console.error('Error creating User collection:', err);
+                logger.error('Error creating User collection:', err);
             }
         });
 
-        app.listen(PORT, () => console.log(`User Service running on port ${PORT}`));
+        app.listen(PORT, () => logger.info(`User Service running on port ${PORT}`));
     })
-    .catch((err: unknown) => console.error('MongoDB connection error:', err));
+    .catch((err: unknown) => logger.error('MongoDB connection error:', err));

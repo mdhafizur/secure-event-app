@@ -71,16 +71,18 @@ reapply-grafana:
 	kubectl apply -f k8s/base/grafana-deployment.yaml
 
 recreate-grafana:
-	@echo "Deleting existing Grafana deployment..."
+	@echo "🔄 Deleting existing Grafana deployment..."
 	-kubectl delete deployment grafana -n $(NAMESPACE)
-	@echo "Applying new Grafana deployment..."
+
+	@echo "🚀 Applying new Grafana deployment..."
 	kubectl apply -f k8s/base/grafana-deployment.yaml
 
-	@echo "Waiting for Grafana pod to become ready (timeout: 60s)..."
+	@echo "⏳ Waiting for Grafana pod to become ready (timeout: 60s)..."
 	@timeout=60; \
 	while [ $$timeout -gt 0 ]; do \
-		if kubectl get pods -n $(NAMESPACE) -l app=grafana -o jsonpath="{.items[0].status.containerStatuses[0].ready}" 2>/dev/null | grep -q "true"; then \
-			echo "Grafana is ready."; \
+		status=$$(kubectl get pods -n $(NAMESPACE) -l app=grafana -o jsonpath="{.items[0].status.containerStatuses[0].ready}" 2>/dev/null); \
+		if [ "$$status" = "true" ]; then \
+			echo "✅ Grafana is ready."; \
 			break; \
 		else \
 			echo "Waiting... ($$timeout)"; \
@@ -89,39 +91,42 @@ recreate-grafana:
 		fi; \
 	done
 
-	@echo "Cleaning up old port-forward on 80 (if any)..."
-	-lsof -ti :80 | xargs kill -9 2>/dev/null || true
+	@echo "🧹 Cleaning up old port-forward on port 3000 (if any)..."
+	-lsof -ti :3000 | xargs kill -9 2>/dev/null || true
 
-	@echo "Starting Grafana port-forward on localhost:3000"
+	@echo "🌐 Starting Grafana port-forward on http://localhost:3000"
 	@nohup kubectl port-forward -n $(NAMESPACE) svc/grafana 3000:80 > grafana.log 2>&1 &
-	@echo "Port-forwarding started in background. Logs: grafana.log"
+	@echo "📁 Port-forwarding started in background. Logs: grafana.log"
+
 
 recreate-prometheus:
-	@echo "Deleting existing Prometheus deployment..."
-	-kubectl delete deployment prometheus -n $(NAMESPACE)
-	@echo "Applying new Prometheus deployment..."
+	@echo "🔄 Deleting existing Prometheus deployment..."
+	-kubectl delete deployment prometheus -n $(NAMESPACE) --ignore-not-found
+
+	@echo "🚀 Applying new Prometheus deployment..."
 	kubectl apply -f k8s/base/prometheus-deployment.yaml
 
-	@echo "Waiting for Prometheus pod to become ready (timeout: 30s)..."
+	@echo "⏳ Waiting for Prometheus pod to become ready (timeout: 30s)..."
 	@timeout=30; \
 	while [ $$timeout -gt 0 ]; do \
-		if kubectl get pods -n $(NAMESPACE) -l app=prometheus -o jsonpath="{.items[0].status.containerStatuses[0].ready}" 2>/dev/null | grep -q "true"; then \
-			echo "Prometheus is ready."; \
+		status=$$(kubectl get pods -n $(NAMESPACE) -l app=prometheus -o jsonpath="{.items[0].status.containerStatuses[0].ready}" 2>/dev/null); \
+		if [ "$$status" = "true" ]; then \
+			echo "✅ Prometheus is ready."; \
 			break; \
 		else \
-			echo "Waiting... ($$timeout)"; \
+			echo "⏳ Waiting... ($$timeout seconds left)"; \
 			sleep 2; \
 			timeout=$$((timeout - 2)); \
 		fi; \
 	done
 
-	@echo "Cleaning up old port-forward on 9090 (if any)..."
+	@echo "🧹 Cleaning up old port-forward on port 9090 (if any)..."
 	-lsof -ti :9090 | xargs kill -9 2>/dev/null || true
 
-	@echo "Starting Loki port-forward on localhost:9090"
-	@echo "Starting Prometheus port-forward on localhost:9090"
+	@echo "🌐 Starting Prometheus port-forward on http://localhost:9090"
 	@nohup kubectl port-forward -n $(NAMESPACE) svc/prometheus 9090:9090 > prometheus.log 2>&1 &
-	@echo "Port-forwarding started in background. Logs: prometheus.log"
+	@echo "📁 Port-forwarding started in background. Logs: prometheus.log"
+
 
 
 recreate-loki:

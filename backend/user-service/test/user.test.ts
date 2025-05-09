@@ -10,14 +10,14 @@ describe('User API', () => {
       .post('/api/users')
       .send({
         username: 'hafizur',
-        email: 'hafiz@example.com',
+        email: 'hafiz@gmail.com',
         password: 'secret123',
         role: 'admin'
       });
-
+    console.log(res.statusCode, res.body);
     expect(res.statusCode).toBe(201);
     expect(res.body.username).toBe('hafizur');
-    expect(res.body.email).toBe('hafiz@example.com');
+    expect(res.body.email).toBe('hafiz@gmail.com');
   });
 
   it('should fail to create a user with duplicate email', async () => {

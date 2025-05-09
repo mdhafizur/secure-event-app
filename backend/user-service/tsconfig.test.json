@@ -1,8 +1,12 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "rootDir": "./", // Now test and src can both be compiled
-        "noEmit": true // No output needed during testing
+        "types": [
+            "jest",
+            "node"
+        ], // Include Jest and Node.js types
+        "rootDir": "./", // Ensure both src/ and test/ are covered
+        "noEmit": true // Prevent emitting compiled files during test
     },
     "include": [
         "src/**/*",

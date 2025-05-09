@@ -11,8 +11,8 @@
     "dev": "nodemon src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "debug": "node --inspect ./src/server.ts",
-    "test": "jest",
+    "debug": "tsx watch --inspect ./src/server.ts",
+    "test": "jest --runInBand --detectOpenHandles --forceExit",
     "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
     "lint": "eslint . --ext .ts",
     "prepare": "npm run build"
@@ -39,12 +39,15 @@
     "mongoose": "^8.14.2",
     "redis": "^5.0.1",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.1",
     "@types/jest": "^29.5.14",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^22.15.17",
     "@types/supertest": "^6.0.3",
     "@types/swagger-jsdoc": "^6.0.4",
