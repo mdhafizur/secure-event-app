@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: secureevent
+spec:
+  template:
+    spec:
+      containers:
+      - name: user-service
+        env:
+        - name: PORT
+          value: "3000"
+        - name: MONGO_URI
+          value: "mongodb://mongodb:27017/userdb"
+        - name: REDIS_URL
+          value: "redis://redis:6379"
+        - name: KAFKA_BROKERS
+          value: "kafka:9092"
+        - name: KAFKA_CLIENT_ID
+          value: "user-service-dev"

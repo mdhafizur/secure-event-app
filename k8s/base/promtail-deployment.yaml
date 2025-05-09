@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: promtail
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: promtail
+  template:
+    metadata:
+      labels:
+        app: promtail
+    spec:
+      containers:
+        - name: promtail
+          image: grafana/promtail:latest
+          args:
+            - -config.file=/etc/promtail/promtail-config.yaml
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail
+            - name: logs
+              mountPath: /Users/hafiz/dev/personal/secure-event-app/backend/user-service/logs
+      volumes:
+        - name: config
+          configMap:
+            name: promtail-config
+            items:
+              - key: promtail-config.yaml
+                path: promtail-config.yaml
+        - name: logs
+          hostPath:
+            path: /Users/hafiz/dev/personal/secure-event-app/backend/user-service/logs
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: default
+  labels:
+    app: promtail
+  annotations:
+    description: Promtail configuration embedded in deployment
+data:
+  promtail-config.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+      - url: http://localhost:3100/loki/api/v1/push
+
+    scrape_configs:
+      - job_name: user-service-logs
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: user-service
+              __path__: /Users/hafiz/dev/personal/secure-event-app/backend/user-service/logs/*.log

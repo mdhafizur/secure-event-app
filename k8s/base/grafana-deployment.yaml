@@ -1,0 +1,87 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-config
+  namespace: secureevent
+data:
+  sample-dashboard.json: |
+    {
+      "id": null,
+      "uid": "cpu-dashboard",
+      "title": "Sample Dashboard",
+      "version": 1,
+      "schemaVersion": 16,
+      "tags": ["templated"],
+      "panels": [
+        {
+          "type": "graph",
+          "title": "CPU Usage",
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "rate(node_cpu_seconds_total[5m])",
+              "legendFormat": "{{cpu}}",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provisioning
+  namespace: secureevent
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        updateIntervalSeconds: 10
+        options:
+          path: /etc/grafana/provisioning/dashboards/json
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: secureevent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: "admin"
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: "admin"
+          volumeMounts:
+            - name: dashboards
+              mountPath: /etc/grafana/provisioning/dashboards/json
+            - name: provisioning
+              mountPath: /etc/grafana/provisioning/dashboards
+      volumes:
+        - name: dashboards
+          configMap:
+            name: grafana-dashboard-config
+        - name: provisioning
+          configMap:
+            name: grafana-dashboard-provisioning

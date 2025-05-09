@@ -42,9 +42,9 @@ coverage/
 *.env
 *.env.*
 
-# Kubernetes
-k8s/base/*.yaml
-k8s/overlays/dev/*.yaml
+# # Kubernetes
+# k8s/base/*.yaml
+# k8s/overlays/dev/*.yaml
 
 # Miscellaneous
 *.bak

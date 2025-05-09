@@ -73,3 +73,6 @@ delete-all:
 
 make port-forward-all: port-forward-grafana port-forward-prometheus port-forward-loki port-forward-mongodb port-forward-redis port-forward-kafka
 	@echo "All port-forwards are now running in the background. Check the respective log files for details."
+
+logs-user-service:
+	kubectl logs -f -n $(NAMESPACE) deployment/user-service
