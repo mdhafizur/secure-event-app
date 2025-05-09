@@ -6,6 +6,7 @@ import User from './models/User';
 import app from './app';
 import logger from './utils/logger';
 import { connectRedis } from './utils/redisClient';
+import { kafkaService } from './utils/kafkaClient';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/userdb';
@@ -63,17 +64,27 @@ mongoose.connect(MONGO_URI)
     .then(async () => {
         logger.info('MongoDB connected');
 
-        await connectRedis().catch((err) => {
-            logger.error('Redis connection failed:', err);
-            process.exit(1); // Optional: force exit if Redis is critical
-        });
+        try {
+            // Initialize Kafka
+            await kafkaService.initialize();
+            
+            // Initialize Redis
+            await connectRedis();
 
-        await User.createCollection().catch((err: unknown) => {
-            if ((err as any)?.codeName !== 'NamespaceExists') {
-                logger.error('Error creating User collection:', err);
-            }
-        });
+            // Create User collection if not exists
+            await User.createCollection().catch((err: unknown) => {
+                if ((err as any)?.codeName !== 'NamespaceExists') {
+                    logger.error('Error creating User collection:', err);
+                }
+            });
 
-        app.listen(PORT, () => logger.info(`User Service running on port ${PORT}`));
+            app.listen(PORT, () => logger.info(`User Service running on port ${PORT}`));
+        } catch (error) {
+            logger.error('Service initialization failed:', error);
+            process.exit(1);
+        }
     })
-    .catch((err: unknown) => logger.error('MongoDB connection error:', err));
+    .catch((err: unknown) => {
+        logger.error('MongoDB connection error:', err);
+        process.exit(1);
+    });

@@ -1,0 +1,28 @@
+# Deps
+node_modules
+npm-debug.log
+
+# Build
+dist
+coverage
+.nyc_output
+
+# Test
+test
+*.test.ts
+jest.config.ts
+tsconfig.test.json
+
+# Dev
+.git
+.gitignore
+.env
+*.log
+logs
+README.md
+Dockerfile
+.dockerignore
+
+# IDE
+.vscode
+.idea

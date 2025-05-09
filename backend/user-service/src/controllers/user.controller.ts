@@ -1,8 +1,10 @@
 import { Request, Response } from 'express';
 import { validationResult } from 'express-validator';
 import createHttpError from 'http-errors';
-import User from '../models/User';
+import User, { IUser } from '../models/User';
 import { redisClient } from '../utils/redisClient';
+import { kafkaService } from '../utils/kafkaClient';
+import { UserEvent } from '../types/events';
 import logger from '../utils/logger';
 
 // Create User
@@ -17,7 +19,21 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
   const existing = await User.findOne({ email });
   if (existing) throw createHttpError(409, 'Email already exists');
 
-  const user = await User.create({ username, email, password, role });
+  const user: IUser = await User.create({ username, email, password, role });
+  
+  // Publish user created event
+  const event: UserEvent = {
+    type: 'USER_CREATED',
+    data: {
+      userId: user._id.toString(),
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      timestamp: new Date().toISOString()
+    }
+  };
+  
+  await kafkaService.publishUserEvent(event);
   res.status(201).json(user);
 };
 
@@ -51,7 +67,22 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
 
 // Delete User
 export const deleteUser = async (req: Request, res: Response): Promise<void> => {
-  const result = await User.findByIdAndDelete(req.params.id);
-  if (!result) throw createHttpError(404, 'User not found');
+  const user: IUser | null = await User.findById(req.params.id);
+  if (!user) throw createHttpError(404, 'User not found');
+
+  await User.findByIdAndDelete(req.params.id);
+  
+  // Publish user deleted event
+  const event: UserEvent = {
+    type: 'USER_DELETED',
+    data: {
+      userId: user._id.toString(),
+      username: user.username,
+      email: user.email,
+      timestamp: new Date().toISOString()
+    }
+  };
+  
+  await kafkaService.publishUserEvent(event);
   res.status(200).json({ message: 'User deleted successfully' });
 };

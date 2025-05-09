@@ -36,6 +36,7 @@
     "express": "^5.1.0",
     "express-prom-bundle": "^8.0.0",
     "express-validator": "^7.2.1",
+    "kafkajs": "^2.2.4",
     "mongoose": "^8.14.2",
     "redis": "^5.0.1",
     "swagger-jsdoc": "^6.2.8",
