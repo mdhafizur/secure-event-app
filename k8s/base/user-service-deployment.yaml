@@ -1,58 +1,71 @@
+# ----------------------------------------
+# User Service Deployment
+# ----------------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: user-service
   namespace: secureevent
   labels:
-    app: user-service
+    app: user-service               # Label for organization and selector
 spec:
-  replicas: 1
+  replicas: 1                       # Running a single replica of the user service
   selector:
     matchLabels:
-      app: user-service
+      app: user-service             # Selects pods with this label
   template:
     metadata:
       labels:
-        app: user-service
+        app: user-service           # Pod label for service matching
     spec:
       containers:
         - name: user-service
-          image: user-service:latest
-          imagePullPolicy: IfNotPresent
+          image: user-service:latest         # Image for the user service
+          imagePullPolicy: IfNotPresent      # Pull only if image not present locally
           ports:
-            - containerPort: 3000
+            - containerPort: 3000            # Exposes container port 3000 for HTTP
               name: http
-          env:
+          env:                               # Environment variables
             - name: PORT
-              value: "3000"
+              value: "3000"                  # Port the service listens on
             - name: MONGO_URI
               value: "mongodb://mongodb.secureevent.svc.cluster.local:27017/userdb"
+              # MongoDB connection string (DNS of service)
             - name: REDIS_URL
               value: "redis://redis.secureevent.svc.cluster.local:6379"
+              # Redis connection string
             - name: KAFKA_BROKERS
               value: "kafka.secureevent.svc.cluster.local:9092"
+              # Kafka broker address
             - name: KAFKA_CLIENT_ID
-              value: "user-service-dev"
-          resources:
+              value: "user-service"          # Kafka client identifier
+          resources:                         # CPU & memory resource requests and limits
             requests:
-              memory: "256Mi"
-              cpu: "100m"
+              cpu: "500m"                    # Minimum CPU
+              memory: "512Mi"                # Minimum memory to allocate
             limits:
-              memory: "512Mi"
-              cpu: "200m"
-          livenessProbe:
+              cpu: "1"                        # Max CPU
+              memory: "1024Mi"                # Max memory
+          livenessProbe:                      # Checks if container is alive
+            httpGet:
+              path: /health                  # Endpoint to ping for health
+              port: http                     # Named port reference
+            initialDelaySeconds: 60          # Wait before first check
+            periodSeconds: 10                # Check interval
+            timeoutSeconds: 3
+            failureThreshold: 6 
+          readinessProbe:                    # Checks if container is ready to serve traffic
             httpGet:
               path: /health
               port: http
             initialDelaySeconds: 30
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: http
-            initialDelaySeconds: 5
             periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6 
 ---
+# ----------------------------------------
+# User Service (ClusterIP for internal communication)
+# ----------------------------------------
 apiVersion: v1
 kind: Service
 metadata:
@@ -60,10 +73,10 @@ metadata:
   namespace: secureevent
 spec:
   selector:
-    app: user-service
+    app: user-service               # Routes traffic to matching pods
   ports:
-    - port: 80
-      targetPort: http
+    - port: 3000                    # Service port exposed inside the cluster
+      targetPort: http              # Targets the named container port
       protocol: TCP
       name: http
-  type: ClusterIP
+  type: ClusterIP                   # Default service type for internal communication

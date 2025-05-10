@@ -1,3 +1,6 @@
+# ----------------------------------------
+# Kafka StatefulSet (Bitnami with KRaft mode)
+# ----------------------------------------
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -6,8 +9,8 @@ metadata:
   labels:
     app: kafka
 spec:
-  serviceName: kafka
-  replicas: 1
+  serviceName: kafka                     # Required for stable network ID for each pod (via headless service)
+  replicas: 1                            # One Kafka broker for now
   selector:
     matchLabels:
       app: kafka
@@ -18,13 +21,13 @@ spec:
     spec:
       containers:
         - name: kafka
-          image: bitnami/kafka:latest
+          image: bitnami/kafka:latest    # Using Bitnami Kafka image
           ports:
-            - containerPort: 9092
+            - containerPort: 9092        # Client communication port
               name: kafka
-            - containerPort: 9093
+            - containerPort: 9093        # Controller communication port (KRaft mode)
               name: controller
-          env:
+          env:                           # Kafka configuration via environment variables
             - name: BITNAMI_DEBUG
               value: "true"
             - name: KAFKA_CFG_NODE_ID
@@ -44,9 +47,9 @@ spec:
             - name: ALLOW_PLAINTEXT_LISTENER
               value: "yes"
             - name: KAFKA_CFG_LOG_DIRS
-              value: "/bitnami/kafka/data"
+              value: "/bitnami/kafka/data"             # Data directory
             - name: KAFKA_CFG_METADATA_LOG_DIR
-              value: "/bitnami/kafka/kraft-metadata"
+              value: "/bitnami/kafka/kraft-metadata"   # Metadata directory
           resources:
             requests:
               memory: "1Gi"
@@ -56,16 +59,20 @@ spec:
               cpu: "1000m"
           volumeMounts:
             - name: kafka-data
-              mountPath: /bitnami/kafka
+              mountPath: /bitnami/kafka                 # Persistent mount location
   volumeClaimTemplates:
     - metadata:
         name: kafka-data
       spec:
-        accessModes: ["ReadWriteOnce"]
+        accessModes: ["ReadWriteOnce"]                 # Can only be mounted on one node
         resources:
           requests:
-            storage: 10Gi
+            storage: 10Gi                              # Storage request for Kafka data
+
 ---
+# ----------------------------------------
+# Kafka Internal Service (ClusterIP)
+# ----------------------------------------
 apiVersion: v1
 kind: Service
 metadata:
@@ -85,8 +92,12 @@ spec:
       name: controller
   selector:
     app: kafka
-  type: ClusterIP
+  type: ClusterIP                                    # Internal service for Kafka clients inside the cluster
+
 ---
+# ----------------------------------------
+# Kafka Headless Service (needed for StatefulSet)
+# ----------------------------------------
 apiVersion: v1
 kind: Service
 metadata:
@@ -95,7 +106,7 @@ metadata:
   labels:
     app: kafka
 spec:
-  clusterIP: None
+  clusterIP: None                                    # Headless service — essential for StatefulSets
   ports:
     - port: 9092
       targetPort: 9092
@@ -107,3 +118,58 @@ spec:
       name: controller
   selector:
     app: kafka
+
+---
+# ----------------------------------------
+# Kafka UI Service (NodePort for external access)
+# ----------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-ui
+  namespace: secureevent
+  labels:
+    app: kafka-ui
+spec:
+  selector:
+    app: kafka-ui
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  type: NodePort                                   # Exposes the UI on a random port on all nodes
+
+---
+# ----------------------------------------
+# Kafka UI Deployment (Provectus Kafka-UI)
+# ----------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-ui
+  namespace: secureevent
+  labels:
+    app: kafka-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-ui
+  template:
+    metadata:
+      labels:
+        app: kafka-ui
+    spec:
+      containers:
+        - name: kafka-ui
+          image: provectuslabs/kafka-ui:latest       # Kafka UI image by Provectus
+          ports:
+            - containerPort: 8080                    # UI served on port 8080
+          env:                                       # Kafka cluster connection details
+            - name: KAFKA_CLUSTERS_0_NAME
+              value: "secureevent-cluster"
+            - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
+              value: "kafka.secureevent.svc.cluster.local:9092"
+            - name: DYNAMIC_CONFIG_ENABLED
+              value: "true"

@@ -3,10 +3,10 @@ kind: Kustomization
 
 namespace: secureevent
 
-bases:
+resources:
   - ../../base
 
-patchesStrategicMerge:
-  - patch-mongo-env.yaml
-  - patch-user-env.yaml
+patches:
+  - path: patch-mongo-env.yaml
+  - path: patch-user-env.yaml
 

@@ -8,7 +8,7 @@ include make/core/variables.mk
 	recreate-mongodb recreate-redis
 
 # Logs
-logs-mongo:
+logs-mongodb:
 	kubectl logs -f -n $(NAMESPACE) deployment/mongodb
 
 logs-redis:
@@ -18,22 +18,6 @@ logs-redis:
 mongo-client:
 	kubectl run mongo-client -n $(NAMESPACE) --rm -it --restart=Never \
 		--image=mongo:6.0 -- bash
-
-# Port Forwarding
-port-forward-mongodb:
-	@echo "🧹 Cleaning up old MongoDB port-forward on 27017 (if any)..."
-	-lsof -ti :27017 | xargs kill -9 2>/dev/null || true
-	@echo "🚀 Starting MongoDB port-forward on localhost:27017"
-	@nohup kubectl port-forward -n $(NAMESPACE) svc/mongodb 27017:27017 > mongodb.log 2>&1 &
-	@echo "📁 Port-forwarding started in background. Logs: mongodb.log"
-
-port-forward-redis:
-	@echo "🧹 Cleaning up old Redis port-forward on 6379 (if any)..."
-	-lsof -ti :6379 | xargs kill -9 2>/dev/null || true
-	@echo "🚀 Starting Redis port-forward on localhost:6379"
-	@nohup kubectl port-forward -n $(NAMESPACE) svc/redis 6379:6379 > redis.log 2>&1 &
-	@echo "📁 Port-forwarding started in background. Logs: redis.log"
-
 
 # Recreation with Health Checks
 recreate-mongodb:
@@ -91,5 +75,20 @@ recreate-redis:
 	@echo "Starting Redis port-forward on localhost:6379"
 	@nohup kubectl port-forward -n $(NAMESPACE) svc/redis 6379:6379 > redis.log 2>&1 &
 	@echo "Port-forwarding started in background. Logs: redis.log"
+
+# Port Forwarding
+port-forward-mongodb:
+	@echo "🧹 Cleaning up old MongoDB port-forward on 27017 (if any)..."
+	-lsof -ti :27017 | xargs kill -9 2>/dev/null || true
+	@echo "🚀 Starting MongoDB port-forward on localhost:27017"
+	@nohup kubectl port-forward -n $(NAMESPACE) svc/mongodb 27017:27017 > mongodb.log 2>&1 &
+	@echo "📁 Port-forwarding started in background. Logs: mongodb.log"
+
+port-forward-redis:
+	@echo "🧹 Cleaning up old Redis port-forward on 6379 (if any)..."
+	-lsof -ti :6379 | xargs kill -9 2>/dev/null || true
+	@echo "🚀 Starting Redis port-forward on localhost:6379"
+	@nohup kubectl port-forward -n $(NAMESPACE) svc/redis 6379:6379 > redis.log 2>&1 &
+	@echo "📁 Port-forwarding started in background. Logs: redis.log"
 
 endif

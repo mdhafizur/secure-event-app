@@ -7,15 +7,24 @@
   "directories": {
     "test": "test"
   },
+  "engines": {
+    "node": "22.1.0"
+  },
   "scripts": {
     "dev": "nodemon src/server.ts",
+    "clean": "rm -rf dist",
     "build": "tsc",
     "start": "node dist/server.js",
     "debug": "tsx watch --inspect ./src/server.ts",
     "test": "jest --runInBand --detectOpenHandles --forceExit",
+    "test:coverage": "jest --coverage",
     "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
     "lint": "eslint . --ext .ts",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "test:load:ci": "NODE_ENV=test artillery run --output ./load-tests/reports/user-test-report.json ./load-tests/user-api-load-test.yml",
+    "start:prod": "pm2 start dist/server.js -i max --name user-service",
+    "restart:prod": "pm2 restart user-service",
+    "stop:prod": "pm2 stop user-service"
   },
   "keywords": [
     "express",
@@ -38,6 +47,7 @@
     "express-validator": "^7.2.1",
     "kafkajs": "^2.2.4",
     "mongoose": "^8.14.2",
+    "pm2": "^6.0.5",
     "redis": "^5.0.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
@@ -48,7 +58,6 @@
     "@types/cors": "^2.8.18",
     "@types/express": "^5.0.1",
     "@types/jest": "^29.5.14",
-    "@types/mocha": "^10.0.10",
     "@types/node": "^22.15.17",
     "@types/supertest": "^6.0.3",
     "@types/swagger-jsdoc": "^6.0.4",

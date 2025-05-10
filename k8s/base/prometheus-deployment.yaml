@@ -8,15 +8,13 @@ data:
     global:
       scrape_interval: 15s
     scrape_configs:
-      - job_name: 'prometheus'
+      - job_name: 'promtail'
         static_configs:
-          - targets: ['localhost:9090']
-      - job_name: 'node'
+          - targets: ['promtail.secureevent.svc.cluster.local:9080']
+
+      - job_name: 'user-service'
         static_configs:
-          - targets: ['node-exporter:9100']
-      - job_name: 'grafana'
-        static_configs:
-          - targets: ['grafana:3000']
+          - targets: ['user-service.secureevent.svc.cluster.local:3000']
 
 ---
 apiVersion: v1
@@ -31,7 +29,6 @@ spec:
     - name: http
       port: 9090
       targetPort: 9090
-
 ---
 apiVersion: apps/v1
 kind: Deployment

@@ -4,6 +4,10 @@ metadata:
   name: user-service
   namespace: secureevent
 spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
   template:
     spec:
       containers:
@@ -18,4 +22,4 @@ spec:
         - name: KAFKA_BROKERS
           value: "kafka:9092"
         - name: KAFKA_CLIENT_ID
-          value: "user-service-dev"
+          value: "user-service"

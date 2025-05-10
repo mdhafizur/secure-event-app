@@ -4,19 +4,12 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import userRoutes from './routes/user.routes';
 import promBundle from 'express-prom-bundle';
-import logger from './utils/logger';
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-
-// Replace console.log with logger in middleware
-app.use((req, res, next) => {
-    logger.info(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
-    next();
-});
 
 const metricsMiddleware = promBundle({ includeMethod: true });
 app.use(metricsMiddleware);

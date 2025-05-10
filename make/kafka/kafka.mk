@@ -158,11 +158,22 @@ kafka-alter-config:
 
 # Port Forwarding and Recreation
 port-forward-kafka:
-	@echo "🧹 Cleaning up old Kafka port-forward on 9092 (if any)..."
+	@echo "🧹 Cleaning up old port-forwards on ports 9092 (Kafka) and 8080 (Kafka UI)..."
 	-lsof -ti :9092 | xargs kill -9 2>/dev/null || true
+	-lsof -ti :8080 | xargs kill -9 2>/dev/null || true
+
 	@echo "🚀 Starting Kafka port-forward on localhost:9092"
 	@nohup kubectl port-forward -n $(NAMESPACE) svc/kafka 9092:9092 > kafka.log 2>&1 &
-	@echo "📁 Port-forwarding started in background. Logs: kafka.log"
+	@sleep 2
+
+	@echo "🚀 Starting Kafka UI port-forward on localhost:8080"
+	@nohup kubectl port-forward -n $(NAMESPACE) svc/kafka-ui 8080:8080 > kafka-ui.log 2>&1 &
+	@sleep 2
+
+	@echo "✅ Kafka is accessible at:         localhost:9092"
+	@echo "✅ Kafka UI is accessible at:      http://localhost:8080"
+	@echo "📁 Logs: kafka.log | kafka-ui.log"
+
 
 
 recreate-kafka:

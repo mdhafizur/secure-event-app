@@ -1,24 +1,54 @@
+# ----------------------------------------
+# PersistentVolumeClaim for Redis data storage
+# ----------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-pvc
+  namespace: secureevent
+spec:
+  accessModes:
+    - ReadWriteOnce   # Volume can be mounted as read-write by only one node
+  resources:
+    requests:
+      storage: 1Gi     # Requesting 1Gi storage for Redis data
+
+---
+# ----------------------------------------
+# Redis Deployment
+# ----------------------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
   namespace: secureevent
 spec:
-  replicas: 1
+  replicas: 1            # Running a single Redis instance
   selector:
     matchLabels:
       app: redis
   template:
     metadata:
       labels:
-        app: redis
+        app: redis       # Labels must match the selector
     spec:
       containers:
         - name: redis
-          image: redis:6.2
+          image: redis:6.2         # Using Redis 6.2 official image
           ports:
-            - containerPort: 6379
+            - containerPort: 6379  # Redis default port
+          volumeMounts:
+            - name: redis-storage
+              mountPath: /data     # Mounting PVC at Redis data directory
+      volumes:
+        - name: redis-storage
+          persistentVolumeClaim:
+            claimName: redis-pvc   # Claiming the defined PVC
+
 ---
+# ----------------------------------------
+# Redis Service (ClusterIP)
+# ----------------------------------------
 apiVersion: v1
 kind: Service
 metadata:
@@ -26,7 +56,7 @@ metadata:
   namespace: secureevent
 spec:
   selector:
-    app: redis
+    app: redis              # Routes traffic to pods with label app=redis
   ports:
-    - port: 6379
-      targetPort: 6379
+    - port: 6379            # Service port exposed inside the cluster
+      targetPort: 6379      # Targeting container's Redis port

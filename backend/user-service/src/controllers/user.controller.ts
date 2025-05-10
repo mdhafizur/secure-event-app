@@ -33,7 +33,7 @@ export const createUser = async (req: Request, res: Response): Promise<void> => 
     }
   };
   
-  await kafkaService.publishUserEvent(event);
+  kafkaService.publishUserEvent(event).catch(err => logger.warn('Kafka fail:', err));
   res.status(201).json(user);
 };
 
@@ -61,7 +61,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
     throw createHttpError(404, 'User not found');
   }
 
-  await redisClient.setEx(cacheKey, 3600, JSON.stringify(user));
+  redisClient.setEx(cacheKey, 3600, JSON.stringify(user)).catch(err => logger.warn('Redis fail:', err));
   res.status(200).json(user);
 };
 
@@ -83,6 +83,6 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
     }
   };
   
-  await kafkaService.publishUserEvent(event);
+  kafkaService.publishUserEvent(event).catch(err => logger.warn('Kafka fail:', err));
   res.status(200).json({ message: 'User deleted successfully' });
 };

@@ -60,14 +60,20 @@ const swaggerOptions = {
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-mongoose.connect(MONGO_URI)
+mongoose.connect(MONGO_URI, {
+    maxPoolSize: 20,               // Max concurrent socket connections (increase for high load)
+    minPoolSize: 2,                // Minimum persistent sockets
+    serverSelectionTimeoutMS: 5000, // Time to wait for MongoDB server selection
+    socketTimeoutMS: 45000,        // Time before a socket times out if idle
+    heartbeatFrequencyMS: 10000,   // How often to ping MongoDB for connection health
+})
     .then(async () => {
         logger.info('MongoDB connected');
 
         try {
             // Initialize Kafka
             await kafkaService.initialize();
-            
+
             // Initialize Redis
             await connectRedis();
 

@@ -1,9 +1,39 @@
+# 🔐 Secret for Admin Credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-admin-secret
+  namespace: secureevent
+type: Opaque
+stringData:
+  admin-password: "admin"  # 🔁 Change this before production
+
+---
+# 📊 Dashboard ConfigMap
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-dashboard-config
   namespace: secureevent
 data:
+  prometheus-datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus.secureevent.svc.cluster.local:9090
+        isDefault: true
+
+  loki-datasource.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki.secureevent.svc.cluster.local:3100
+        isDefault: true
+
   sample-dashboard.json: |
     {
       "id": null,
@@ -29,6 +59,7 @@ data:
     }
 
 ---
+# 📁 Dashboard Provisioning ConfigMap
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -48,6 +79,7 @@ data:
           path: /etc/grafana/provisioning/dashboards/json
 
 ---
+# 🚀 Grafana Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -72,7 +104,10 @@ spec:
             - name: GF_SECURITY_ADMIN_USER
               value: "admin"
             - name: GF_SECURITY_ADMIN_PASSWORD
-              value: "admin"
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-admin-secret
+                  key: admin-password
           volumeMounts:
             - name: dashboards
               mountPath: /etc/grafana/provisioning/dashboards/json
@@ -85,3 +120,22 @@ spec:
         - name: provisioning
           configMap:
             name: grafana-dashboard-provisioning
+
+---
+# 🌐 Grafana Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: secureevent
+  labels:
+    app: grafana
+spec:
+  selector:
+    app: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      protocol: TCP
+  type: ClusterIP

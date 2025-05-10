@@ -1,44 +1,9 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: promtail
-  namespace: default
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: promtail
-  template:
-    metadata:
-      labels:
-        app: promtail
-    spec:
-      containers:
-        - name: promtail
-          image: grafana/promtail:latest
-          args:
-            - -config.file=/etc/promtail/promtail-config.yaml
-          volumeMounts:
-            - name: config
-              mountPath: /etc/promtail
-            - name: logs
-              mountPath: /Users/hafiz/dev/personal/secure-event-app/backend/user-service/logs
-      volumes:
-        - name: config
-          configMap:
-            name: promtail-config
-            items:
-              - key: promtail-config.yaml
-                path: promtail-config.yaml
-        - name: logs
-          hostPath:
-            path: /Users/hafiz/dev/personal/secure-event-app/backend/user-service/logs
----
+# Define a ConfigMap containing Promtail's configuration
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: promtail-config
-  namespace: default
+  namespace: secureevent
   labels:
     app: promtail
   annotations:
@@ -46,20 +11,78 @@ metadata:
 data:
   promtail-config.yaml: |
     server:
-      http_listen_port: 9080
-      grpc_listen_port: 0
+      http_listen_port: 9080  # Promtail's HTTP metrics port
+      grpc_listen_port: 0     # Disable gRPC server (not used)
 
     positions:
-      filename: /tmp/positions.yaml
+      filename: /tmp/positions.yaml  # Stores positions of last read lines for log continuity
 
     clients:
-      - url: http://localhost:3100/loki/api/v1/push
+      - url: http://loki.secureevent.svc.cluster.local:3100/loki/api/v1/push
+        # Push logs to Loki using internal DNS within Kubernetes
 
     scrape_configs:
-      - job_name: user-service-logs
+      - job_name: user-service-logs  # Identifier for this scrape job
         static_configs:
           - targets:
-              - localhost
+              - localhost  # Required but unused in file-based targets
             labels:
-              job: user-service
-              __path__: /Users/hafiz/dev/personal/secure-event-app/backend/user-service/logs/*.log
+              job: user-service  # Job label for logs
+              __path__: /var/log/user-service/*.log  # Log file path to watch
+
+---
+# Exposes Promtail's metrics endpoint via a Kubernetes Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: promtail
+  namespace: secureevent
+  labels:
+    app: promtail
+spec:
+  selector:
+    app: promtail # Matches Deployment label to direct traffic
+  ports:
+    - name: http-metrics
+      port: 9080 # Exposes Promtail's metrics on port 9080
+      targetPort: 9080
+      protocol: TCP
+
+---
+# Defines the Deployment for running Promtail
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: promtail
+  namespace: secureevent # Namespace should match Service and ConfigMap
+spec:
+  replicas: 1 # One instance of Promtail
+  selector:
+    matchLabels:
+      app: promtail # Ensures pods are matched by Service
+  template:
+    metadata:
+      labels:
+        app: promtail
+    spec:
+      containers:
+        - name: promtail
+          image: grafana/promtail:latest # Official Promtail image
+          args:
+            - -config.file=/etc/promtail/promtail-config.yaml # Use provided config file
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail # Mount Promtail config
+            - name: logs
+              mountPath: /var/log/user-service # Mount host log directory
+      volumes:
+        - name: config
+          configMap:
+            name: promtail-config # Use the above ConfigMap
+            items:
+              - key: promtail-config.yaml
+                path: promtail-config.yaml # Match Promtail’s config file name
+        - name: logs
+          hostPath:
+            path: /Users/hafiz/dev/personal/secure-event-app/backend/user-service/logs
+            type: DirectoryOrCreate # Ensure directory exists or create it

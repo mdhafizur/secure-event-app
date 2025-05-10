@@ -4,7 +4,7 @@ import logger from './logger';
 import { UserEvent, USER_EVENTS_TOPIC } from '../types/events';
 
 const kafkaHost = process.env.KAFKA_BROKERS || 'localhost:9092';
-const clientId = process.env.KAFKA_CLIENT_ID || 'user-service-dev';
+const clientId = process.env.KAFKA_CLIENT_ID || 'user-service';
 
 export const kafka = new Kafka({
     clientId,
@@ -12,7 +12,7 @@ export const kafka = new Kafka({
     logLevel: logLevel.ERROR,
     retry: {
         initialRetryTime: 100,
-        retries: 8
+        retries: 3
     }
 });
 

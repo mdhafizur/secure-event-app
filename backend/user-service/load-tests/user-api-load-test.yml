@@ -1,0 +1,32 @@
+config:
+  target: "http://localhost:3000" # Base URL of the API being tested
+
+  phases:
+    - duration: 60 # Duration of this test phase in seconds
+      arrivalRate: 40 # Simulate 40 new users (virtual users) per second
+      name: "Generate 40 new users/sec for 1 minute"
+
+  processor: "user-generator.js" # JS file used to dynamically generate fake user data
+
+  plugins:
+    faker: {} # Enables the faker plugin for random data generation
+
+  defaults:
+    headers:
+      Content-Type: "application/json" # Default content type for requests
+
+scenarios:
+  - name: "Create User and Fetch All" # Name of the scenario
+    flow:
+      - function: "generateUser" # Call the JS function to populate user data
+
+      - post: # Send a POST request to create a new user
+          url: "/api/users"
+          json:
+            username: "{{ user.username }}" # Injected from `generateUser()`
+            email: "{{ user.email }}"
+            password: "{{ user.password }}"
+            role: "{{ user.role }}"
+
+      - get: # Follow up with a GET to fetch all users
+          url: "/api/users"

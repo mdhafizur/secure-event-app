@@ -1,10 +1,10 @@
 resources:
   - namespace.yaml
   - mongodb-deployment.yaml
-  - redis-deployment.yaml
   - kafka-deployment.yaml
   - prometheus-deployment.yaml
   - loki-deployment.yaml
   - grafana-deployment.yaml
   - promtail-deployment.yaml
+  - redis-deployment.yaml
   - user-service-deployment.yaml

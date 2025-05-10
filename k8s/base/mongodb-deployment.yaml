@@ -1,35 +1,22 @@
-apiVersion: apps/v1
-kind: Deployment
+# ----------------------------------------
+# PersistentVolumeClaim for MongoDB storage
+# ----------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
 metadata:
-  name: mongodb
+  name: mongo-pvc
   namespace: secureevent
 spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mongodb
-  template:
-    metadata:
-      labels:
-        app: mongodb
-    spec:
-      containers:
-        - name: mongodb
-          image: mongo:6.0
-          ports:
-            - containerPort: 27017
-          env:
-            - name: MONGO_INITDB_DATABASE
-              value: userdb
-          # volumeMounts:
-          #   - name: mongo-data
-          #     mountPath: /data/db
-      # volumes:
-      #   - name: mongo-data
-      #     hostPath:
-      #       path: /Users/hafiz/dev/personal/secure-event-app/data/mongodb
-      #       type: DirectoryOrCreate
+  accessModes:
+    - ReadWriteOnce # Volume can be mounted as read-write by only one node
+  resources:
+    requests:
+      storage: 1Gi   # Requesting 1Gi of storage
+
 ---
+# ----------------------------------------
+# Service to expose MongoDB internally
+# ----------------------------------------
 apiVersion: v1
 kind: Service
 metadata:
@@ -37,7 +24,42 @@ metadata:
   namespace: secureevent
 spec:
   selector:
-    app: mongodb
+    app: mongodb     # Matches pods with label app: mongodb
   ports:
-    - port: 27017
-      targetPort: 27017
+    - port: 27017    # Exposes port 27017 inside the cluster
+      targetPort: 27017 # Forwards traffic to container's 27017
+
+---
+# ----------------------------------------
+# MongoDB Deployment
+# ----------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: secureevent
+spec:
+  replicas: 1        # Running one MongoDB instance
+  selector:
+    matchLabels:
+      app: mongodb   # Ensures pod matches this label
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:6.0   # MongoDB 6.0 official image
+          ports:
+            - containerPort: 27017 # MongoDB listens on this port
+          env:
+            - name: MONGO_INITDB_DATABASE
+              value: userdb        # Initializes database with 'userdb' on first run
+          volumeMounts:
+            - name: mongo-storage
+              mountPath: /data/db  # Mount persistent storage at MongoDB's data path
+      volumes:
+        - name: mongo-storage
+          persistentVolumeClaim:
+            claimName: mongo-pvc   # Refers to the PVC defined above

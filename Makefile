@@ -4,6 +4,7 @@ include make/core/variables.mk
 include make/kafka/kafka.mk
 include make/monitoring/monitoring.mk
 include make/database/database.mk
+include make/user-service/user-service.mk
 
 .PHONY: help
 
@@ -71,8 +72,5 @@ delete-all:
 	kubectl delete namespace $(NAMESPACE) --ignore-not-found
 	@echo "✅ All resources in the namespace $(NAMESPACE) have been deleted."
 
-make port-forward-all: port-forward-grafana port-forward-prometheus port-forward-loki port-forward-mongodb port-forward-redis port-forward-kafka
+make port-forward-all: port-forward-grafana port-forward-prometheus port-forward-loki port-forward-mongodb port-forward-redis port-forward-kafka port-forward-promtail port-forward-user-service
 	@echo "All port-forwards are now running in the background. Check the respective log files for details."
-
-logs-user-service:
-	kubectl logs -f -n $(NAMESPACE) deployment/user-service
